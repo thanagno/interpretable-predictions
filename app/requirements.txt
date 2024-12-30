@@ -1,0 +1,8 @@
+pandas
+scikit-learn
+joblib
+nltk
+uvicorn
+fastapi
+dice-ml
+streamlit
