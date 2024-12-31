@@ -26,13 +26,13 @@ INTER_PRED
 │   ├── preprocess.py          # Data preprocessing scripts
 │   ├── model.py               # Model training and prediction logic
 │   ├── counterfactuals.py     # Counterfactual generation logic
-│   ├── requirements.txt       # Python dependencies
-│   ├── Dockerfile             # Docker configuration
+││   ├── Dockerfile             # Docker configuration
 ├── data
 │   ├── ad_10000records.csv    # Dataset for training and predictions
 ├── notebooks
 │   ├── Interpretable_Predictions.ipynb  # Development notebook
 ├── README.md                  # Project documentation
+├── requirements.txt       # Python dependencies
 ```
 
 ---
@@ -53,7 +53,7 @@ INTER_PRED
 
 2. Install dependencies:
    ```bash
-   pip install -r app/requirements.txt
+   pip install -r requirements.txt
    ```
 
 3. Run the backend (FastAPI):
