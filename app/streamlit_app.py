@@ -1,45 +1,56 @@
 import streamlit as st
+import requests
 import pandas as pd
-import joblib
-from app.preprocess import preprocess_data
-from app.counterfactuals import generate_counterfactuals
 
-# Load the pre-trained model
-MODEL_PATH = "app/random_forest_model.pkl"
-model = joblib.load(MODEL_PATH)
+# Define the API URL
+API_URL = "http://localhost:8000"
 
-# App Title
-st.title("Ad Click Prediction and Counterfactual Explanations")
+st.title("CTR Prediction Dashboard")
 
-# Upload Dataset
-st.header("Upload Dataset")
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+uploaded_file = st.file_uploader("Upload CSV File", type="csv")
+if uploaded_file:
+    try:
+        # Read the uploaded CSV
+        df = pd.read_csv(uploaded_file)
+        st.write("Preview of Uploaded Data:")
+        st.write(df.head())
 
-if uploaded_file is not None:
-    # Read and preprocess data
-    data = pd.read_csv(uploaded_file)
-    st.write("Original Dataset:")
-    st.dataframe(data.head())
+        # Train Model
+        if st.button("Train Model"):
+            uploaded_file.seek(0)  # Reset file pointer
+            response = requests.post(
+                f"{API_URL}/train/",
+                files={"file": ("uploaded_file.csv", uploaded_file.read(), "text/csv")}
+            )
+            st.write(response.json())
 
-    # Preprocess the data
-    processed_data = preprocess_data(data)
-    st.write("Processed Dataset:")
-    st.dataframe(processed_data.head())
+        if st.button("Make Predictions"):
+            uploaded_file.seek(0)  # Reset file pointer
+            response = requests.post(
+                f"{API_URL}/predict/",
+                files={"file": ("uploaded_file.csv", uploaded_file.read(), "text/csv")}
+            )
 
-    # Predict using the model
-    if st.button("Predict"):
-        predictions = model.predict(processed_data)
-        processed_data["Prediction"] = predictions
-        st.write("Prediction Results:")
-        st.dataframe(processed_data[["Prediction"]].head())
+            # Extract predictions and handle errors
+            try:
+                predictions = response.json().get("predictions", [])
+                if len(predictions) != len(df):
+                    st.error("Prediction failed: Mismatch in data length.")
+                else:
+                    df["Predictions"] = predictions
+                    st.write("Predictions Added to Dataset:", df)
+            except Exception as e:
+                st.error(f"An error occurred: {str(e)}")
 
-    # Generate Counterfactuals
-    st.header("Generate Counterfactual Explanations")
-    user_index = st.number_input("Select Row Index for Counterfactual Explanation", min_value=0, max_value=len(processed_data)-1, step=1)
+        if st.button("Generate Counterfactuals"):
+            user_index = st.number_input("Enter User Index for Counterfactuals", min_value=0, max_value=len(df) - 1, step=1)
+            uploaded_file.seek(0)  # Reset file pointer
+            response = requests.post(
+                f"{API_URL}/counterfactual/",
+                files={"file": ("uploaded_file.csv", uploaded_file.read(), "text/csv")},
+                data={"user_index": user_index},
+            )
+            st.write("Counterfactuals:", response.json())
 
-    if st.button("Generate Counterfactuals"):
-        user_data = processed_data.iloc[[user_index]].copy()
-        full_data = pd.concat([processed_data, data['Clicked on Ad']], axis=1)  # Include target for DiCE
-        cf = generate_counterfactuals(model, full_data, user_data, desired_class=1)
-        st.write("Counterfactual Explanations:")
-        st.dataframe(cf)
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")

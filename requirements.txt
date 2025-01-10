@@ -6,3 +6,5 @@ uvicorn
 fastapi
 dice-ml
 streamlit
+tomotopy
+lime
